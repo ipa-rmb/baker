@@ -32,6 +32,7 @@ class WetCleaningApplication(application_container.ApplicationContainer):
 							   Point32(x=0.54035, y=-0.364), Point32(x=0.54035, y=0.136)]	# todo: read from MIRA
 
 		# todo: hack: cleaning device can be turned off for trade fair show
+		self.use_cleaning_device_ = False
 		if rospy.has_param('use_cleaning_device'):
 			self.use_cleaning_device_ = rospy.get_param("use_cleaning_device")
 			self.printMsg("Imported parameter use_cleaning_device = " + str(self.use_cleaning_device_))
@@ -45,7 +46,7 @@ class WetCleaningApplication(application_container.ApplicationContainer):
 		self.map_handler_.executeBehavior()
 		
 		# Interruption opportunity
-		if self.handleInterrupt() == 2:
+		if self.handleInterrupt() >= 1:
 			return
 		
 		#self.printMsg("self.map_handler_.room_sequencing_data_.checkpoints=" + str(self.map_handler_.room_sequencing_data_.checkpoints))
@@ -64,23 +65,23 @@ class WetCleaningApplication(application_container.ApplicationContainer):
 		)
 		self.movement_handler_.executeBehavior()
 		# Interruption opportunity
-		if self.handleInterrupt() == 2:
+		if self.handleInterrupt() >= 1:
 			return
 
 	# Abstract method that contains the procedure to be done immediately after the application is paused.
 	def prePauseProcedure(self):
-		print "Application: Application paused."
+		self.printMsg("Application paused.")
 		# save current data if necessary
 		# undo or check whether everything has been undone
 		self.returnToRobotStandardState()
 
 	# Abstract method that contains the procedure to be done immediately after the pause has ended
 	def postPauseProcedure(self):
-		print "Application: Application continued."
+		self.printMsg("Application continued.")
 
 	# Abstract method that contains the procedure to be done immediately after the application is cancelled.
 	def cancelProcedure(self):
-		print "Application: Application cancelled."
+		self.printMsg("Application cancelled.")
 		# save current data if necessary
 		# undo or check whether everything has been undone
 		self.returnToRobotStandardState()
