@@ -322,7 +322,7 @@ void ipa_dirt_detection_dataset_tools::ImageBlender::blendImagePatch(cv::Mat& bl
 			const double opacity_factor = (double)patch_mask.at<uchar>(mask_row, mask_col) * 1./255.;
 			if (opacity_factor > 0.)
 			{
-				if (opacity_factor > 0.999)
+				if (opacity_factor > 0.98)
 					blended_image.at<cv::Vec3b>(i, j) = patch_image.at<cv::Vec3b>(mask_row, mask_col);
 				else
 					blended_image.at<cv::Vec3b>(i, j) += opacity_factor * (patch_image.at<cv::Vec3b>(mask_row, mask_col)-blended_image.at<cv::Vec3b>(i, j));
