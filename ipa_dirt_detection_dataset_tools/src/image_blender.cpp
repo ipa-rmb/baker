@@ -95,7 +95,7 @@ void ipa_dirt_detection_dataset_tools::ImageBlender::run()
 
 				// random numbers of dirt and objects
 				const int dirt_num = min_num_dirt_ + rand() % (max_num_dirt_ - min_num_dirt_);		// generate number of dirts in range max_num_dirt and min_num_dirt
-				const int objects_num = min_num_objects_ + rand() % (max_num_objects_ - min_num_objects_);		// generate number of objects in range max_num_objects and min_num_objects
+				const int objects_num = (max_num_objects_ - min_num_objects_==0) ? 0 : min_num_objects_ + rand() % (max_num_objects_ - min_num_objects_);		// generate number of objects in range max_num_objects and min_num_objects
 
 				// blend images
 				std::vector<cv::Rect> patch_roi_list;		// keeps track of utilized ROIs for placing patches
