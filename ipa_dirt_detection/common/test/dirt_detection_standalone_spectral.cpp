@@ -1,5 +1,7 @@
 #include "dirt_detection_standalone_spectral.h"
 
+#include <boost/algorithm/string.hpp>
+
 
 IpaDirtDetection::ServerDirtDetection::ServerDirtDetection()
 {
@@ -20,9 +22,9 @@ IpaDirtDetection::ServerDirtDetection::ServerDirtDetection()
 	std::cout << "ServerDirtDetection: dirt_check_std_dev_factor = " << dirt_check_std_dev_factor_ << std::endl;
 
 	//DEBUG PARAMS
-	debug_["show_warped_original_image"] = true;
+	debug_["show_warped_original_image"] = false;
 	std::cout << "DEBUG_ServerDirtDetection: show_warped_original_image = " << debug_["show_warped_original_image"] << std::endl;
-	debug_["show_dirt_detections"] = true;
+	debug_["show_dirt_detections"] = false;
 	std::cout << "DEBUG_ServerDirtDetection: show_dirt_detections = " << debug_["show_dirt_detections"] << std::endl;
 	debug_["save_data_for_test"] = false;
 	std::cout << "DEBUG_ServerDirtDetection: save_data_for_test = " << debug_["save_data_for_test"] << std::endl;
@@ -30,11 +32,11 @@ IpaDirtDetection::ServerDirtDetection::ServerDirtDetection()
 	std::cout << "DEBUG_ServerDirtDetection: show_color_with_artificial_dirt = " << debug_["show_color_with_artificial_dirt"] << std::endl;
 	debug_["show_saliency_with_artificial_dirt"] = false;
 	std::cout << "DEBUG_ServerDirtDetection: show_saliency_with_artificial_dirt = " << debug_["show_saliency_with_artificial_dirt"] << std::endl;
-	debug_["show_saliency_bad_scale"] = true;
+	debug_["show_saliency_bad_scale"] = false;
 	std::cout << "DEBUG_ServerDirtDetection: show_saliency_bad_scale = " << debug_["show_saliency_bad_scale"] << std::endl;
 	debug_["show_detected_lines"] = false;
 	std::cout << "DEBUG_ServerDirtDetection: show_detected_lines = " << debug_["show_detected_lines"] << std::endl;
-	debug_["show_saliency_detection"] = true;
+	debug_["show_saliency_detection"] = false;
 	std::cout << "DEBUG_ServerDirtDetection: show_saliency_detection = " << debug_["show_saliency_detection"] << std::endl;
 }
 
@@ -70,7 +72,7 @@ void IpaDirtDetection::ServerDirtDetection::detectDirt(const cv::Mat& C3_color_i
 	{
 		cv::imshow("dirt detections", new_C3_color_image);
 		cvMoveWindow("dirt detections", 650, 530);
-		cv::waitKey();
+		cv::waitKey(10);
 	}
 
 	std::cout << "-----------------------------------------------------\nAction done. " << std::endl;
@@ -300,14 +302,16 @@ void IpaDirtDetection::ServerDirtDetection::Image_Postprocessing_C1_rmb(const cv
 	// display of images with artificial dirt
 	if (debug_["show_color_with_artificial_dirt"] == true)
 		cv::imshow("color with artificial dirt", color_image_with_artifical_dirt);
-	cv::Mat C1_saliency_image_with_artifical_dirt_scaled;
-	double salminv, salmaxv;
-	cv::Point2i salminl, salmaxl;
-	cv::minMaxLoc(C1_saliency_image_with_artifical_dirt, &salminv, &salmaxv, &salminl, &salmaxl, mask_with_artificial_dirt);
-	C1_saliency_image_with_artifical_dirt.convertTo(C1_saliency_image_with_artifical_dirt_scaled, -1, 1.0 / (salmaxv - salminv),
-			-1.0 * (salminv) / (salmaxv - salminv));
-	if (debug_["show_saliency_with_artificial_dirt"] == true)
-		cv::imshow("saliency with artificial dirt", C1_saliency_image_with_artifical_dirt_scaled);
+    if (debug_["show_saliency_with_artificial_dirt"] == true) {
+        cv::Mat C1_saliency_image_with_artifical_dirt_scaled;
+        double salminv, salmaxv;
+        cv::Point2i salminl, salmaxl;
+        cv::minMaxLoc(C1_saliency_image_with_artifical_dirt, &salminv, &salmaxv, &salminl, &salmaxl, mask_with_artificial_dirt);
+        C1_saliency_image_with_artifical_dirt.convertTo(C1_saliency_image_with_artifical_dirt_scaled, -1,
+                                                        1.0 / (salmaxv - salminv),
+                                                        -1.0 * (salminv) / (salmaxv - salminv));
+        cv::imshow("saliency with artificial dirt", C1_saliency_image_with_artifical_dirt_scaled);
+    }
 
 	// scale C1_saliency_image to value obtained from C1_saliency_image with artificially added dirt (range [0,1])
 //	std::cout << "res_img: " << C1_saliency_image_with_artifical_dirt.at<float>(300,200);
@@ -322,7 +326,7 @@ void IpaDirtDetection::ServerDirtDetection::Image_Postprocessing_C1_rmb(const cv
 //	std::cout << "dirtThreshold=" << dirtThreshold_ << "\tmin=" << minv << "\tmax=" << maxv << "\tmean=" << mean.val[0] << "\tstddev=" << stdDev.val[0] << "\tnewMaxVal (r)=" << newMaxVal << std::endl;
 
 	////C1_saliency_image.convertTo(scaled_input_image, -1, 1.0/(maxv-minv), 1.0*(minv)/(maxv-minv));
-	cv::Mat scaled_C1_saliency_image = C1_saliency_image.clone(); // square C1_saliency_image_with_artifical_dirt to emphasize the dirt and increase the gap to background response
+	scaled_C1_saliency_image = C1_saliency_image.clone(); // square C1_saliency_image_with_artifical_dirt to emphasize the dirt and increase the gap to background response
 	//scaled_C1_saliency_image = scaled_C1_saliency_image.mul(scaled_C1_saliency_image);
 	scaled_C1_saliency_image.convertTo(scaled_C1_saliency_image, -1, newMaxVal / (maxv - minv), -newMaxVal * (minv) / (maxv - minv));
 
@@ -335,14 +339,14 @@ void IpaDirtDetection::ServerDirtDetection::Image_Postprocessing_C1_rmb(const cv
 //	double minv, maxv;
 //	cv::Point2i minl, maxl;
 //	cv::minMaxLoc(C1_saliency_image,&minv,&maxv,&minl,&maxl, mask);
-	cv::Mat badscale;
-	double badminv, badmaxv;
-	cv::Point2i badminl, badmaxl;
-	cv::minMaxLoc(C1_saliency_image, &badminv, &badmaxv, &badminl, &badmaxl, mask);
-	C1_saliency_image.convertTo(badscale, -1, 1.0 / (badmaxv - badminv), -1.0 * (badminv) / (badmaxv - badminv));
+    if (debug_["show_saliency_bad_scale"] == true)
+    {
+        cv::Mat badscale;
+        double badminv, badmaxv;
+        cv::Point2i badminl, badmaxl;
+        cv::minMaxLoc(C1_saliency_image, &badminv, &badmaxv, &badminl, &badmaxl, mask);
+        C1_saliency_image.convertTo(badscale, -1, 1.0 / (badmaxv - badminv), -1.0 * (badminv) / (badmaxv - badminv));
 //	std::cout << "bad scale:   " << "\tmin=" << badminv << "\tmax=" << badmaxv << std::endl;
-	if (debug_["show_saliency_bad_scale"] == true)
-	{
 		cv::imshow("bad scale", badscale);
 		cvMoveWindow("bad scale", 650, 0);
 	}
@@ -437,30 +441,76 @@ void IpaDirtDetection::ServerDirtDetection::Image_Postprocessing_C1_rmb(const cv
 	}
 }
 
-bool IpaDirtDetection::ServerDirtDetection::convertImageMessageToMat(const sensor_msgs::Image& image_msg, cv_bridge::CvImagePtr& image_ptr, cv::Mat& image)
+std::vector<std::string> readTxt(std::string file)
 {
-	try
-	{
-		image_ptr = cv_bridge::toCvCopy(image_msg, image_msg.encoding);
-	}
-	catch (cv_bridge::Exception& e)
-	{
-		ROS_ERROR("ServerDirtDetection::convertColorImageMessageToMat: cv_bridge exception: %s", e.what());
-		return false;
-	}
-	image = image_ptr->image;
+    std::vector<std::string> img_list;
+    std::ifstream infile;
+    infile.open(file.data());
+    assert(infile.is_open());
 
-	return true;
+    std::string line;
+    std::string last_img;
+    while(getline(infile,line))
+    {
+        std::vector<std::string> items;
+        boost::split(items, line, boost::is_space());
+        if (items[0] != last_img)
+        {
+            img_list.push_back(items[0] + ".png");
+            last_img = items[0];
+        }
+    }
+    infile.close();
+    return img_list;
 }
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "dirt_detection_server_spectral");
-	ros::NodeHandle nh;
+    // define the label path
+    std::string label_path = "/home/rmb-jx/DirtDetectionData/dataset_2019/blended_floor_images/blended_test_floor_images_dirt_only/bbox_labels_no7.txt";
 
-	IpaDirtDetection::ServerDirtDetection server_dirt_detection(nh);
-	ROS_INFO("Action server for dirt detection has been initialized. Waiting for client......");
+    // get the image path list
+    std::vector<std::string> img_list;
+    img_list = readTxt(label_path);
+    std::vector<std::string>::iterator it;
 
-	ros::spin();
+    // dilate element
+    int element_shape = cv::MORPH_RECT;
+    cv::Mat element = getStructuringElement(element_shape, cv::Size(13, 13));
+
+    IpaDirtDetection::ServerDirtDetection server_dirt_detection;
+    for(it=img_list.begin(); it!=img_list.end(); it++)
+    {
+        std::cout << *it << std::endl;
+
+        // preprocess
+        cv::Mat image_ori, image;
+        image_ori = cv::imread("/home/rmb-jx/DirtDetectionData/dataset_2019/blended_floor_images/blended_test_floor_images_dirt_only/"+*it, 1 );
+        cv::Size dsize = cv::Size(640, 480);
+//        cv::Size dsize = cv::Size(1280, 1024);
+        cv::resize(image_ori, image, dsize);
+        cv::Mat mask(dsize.height, dsize.width, CV_8UC1, cv::Scalar::all(255));
+        cv::Mat prob_map, prob_map_out, prob_map_out_dilate, bin_prob_map;
+
+        // detection
+        server_dirt_detection.detectDirt(image, mask, prob_map);
+//        prob_map = frame.compute_dirt(mask, image);
+//        std::cout << prob_map.rows << ',' << prob_map.cols << ',' << prob_map.channels();
+
+        cv::Size rsize = cv::Size(1280, 1024);
+        cv::resize(prob_map, prob_map_out, rsize, (0, 0), (0, 0), cv::INTER_LINEAR);
+
+        // dilate
+        cv::morphologyEx(prob_map_out, prob_map_out_dilate, cv::MORPH_CLOSE, element);
+        prob_map_out_dilate.convertTo(bin_prob_map, CV_8UC1, 255.);
+        // visualize result
+        // dirt_map just 0 and 1, suitable for imshow, but imwrite needs 255 s
+        cv::imwrite("dirt_only_test/prob_map_close_resize_640/" + *it, bin_prob_map);
+//        dirt_map_out.convertTo(save_dirt_map, CV_8UC1, 255);
+//        cv::imwrite("dirt_only_test/dirt_map/" + *it, save_dirt_map);
+//        cv::imshow("dirt", prob_map_out);
+//        cv::waitKey(0);
+    }
+
 	return 0;
 }
